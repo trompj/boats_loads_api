@@ -1,6 +1,7 @@
 # Justin Tromp
 # 04/16/2020
-# Boat/Slip API: Allows users to access boat/slip data and manipulate data in a RESTful fashion.
+# Boat/Load API: Allows users to access boat/load data and manipulate data in a RESTful fashion. User may create a boat,
+# create a load, add a load to a boat, and delete/view them respectively.
 
 from google.cloud import datastore
 from flask import Flask, request, jsonify
@@ -9,13 +10,13 @@ import constants
 app = Flask(__name__)
 client = datastore.Client()
 
-# host = "http://localhost:8080/"
-host = "https://trompj-assignment-3.appspot.com/"
 
 @app.route('/')
 def index():
-    return "Please navigate to /slips or /boats to use this API"
+    return "Please navigate to /loads or /boats to use this API"
 
+
+# Get all boats and add a boat
 @app.route('/boats', methods={'GET', 'POST'})
 def boat_get_add():
     # Add a boat with provided values in JSON
@@ -27,18 +28,19 @@ def boat_get_add():
             # Create a boat entity with given values
             new_boat = datastore.entity.Entity(key=client.key(constants.boat))
             new_boat.update({"name": content["name"], "type": content["type"],
-                             "length": content["length"]})
+                             "length": content["length"], "loads": []})
 
             # Send created boat to datastore
             client.put(new_boat)
 
-            live_link = host + "boats/" + str(new_boat.id)
+            live_link = request.base_url + "boats/" + str(new_boat.id)
             # Set response
             response = {
                 'id': new_boat.id,
-                'name': content["name"],
-                'type': content["type"],
-                'length': content["length"],
+                'name': new_boat.get("name"),
+                'type': new_boat.get("type"),
+                'length': new_boat.get("length"),
+                'loads': new_boat.get("loads"),
                 'self': live_link
             }
 
@@ -50,31 +52,53 @@ def boat_get_add():
     # Get all boats and output
     elif request.method == 'GET':
         query = client.query(kind=constants.boat)
-        results = list(query.fetch())
 
-        result_list = []
+        # Implement pagination of 3 entities
+        q_limit = int(request.args.get('limit', '3'))
+        q_offset = int(request.args.get('offset', '0'))
+        list_iterator = query.fetch(limit=q_limit, offset=q_offset)
+        pages = list_iterator.pages
+        results = list(next(pages))
+
+        if list_iterator.next_page_token:
+            next_offset = q_offset + q_limit
+            next_url = request.base_url + "?limit=" + str(q_limit) + "&offset=" + str(next_offset)
+        else:
+            next_url = None
+
+        # Loop through entities to be output in response and create response
         for e in results:
             dict_result = dict(e)
 
-            live_link = host + "boats/" + str(e.key.id)
+            live_link = request.base_url + "boats/" + str(e.key.id)
 
-            entity = {
-                'id': e.key.id,
-                'name': dict_result.get("name"),
-                'type': dict_result.get("type"),
-                'length': dict_result.get("length"),
-                'self': live_link
-            }
+            e["id"] = e.key.id
+            e["name"] = dict_result.get("name")
+            e["type"] = dict_result.get("type")
+            e["length"] = dict_result.get("length")
+            e["loads"] = dict_result.get("loads")
+            e["self"] = live_link
 
-            result_list.append(entity)
-        return jsonify(result_list), 200
+        output = {"boats": results}
+
+        # Add count of page of results and total count of entities
+        list_all = list(query.fetch())
+        output["count"] = len(results)
+        output["total"] = len(list_all)
+
+        # Add next_url to the list outputted
+        if next_url:
+            output["next"] = next_url
+
+        return jsonify(output), 200
 
     # Incorrect request found
     else:
         return jsonify(Error='Method not accepted')
 
 
-@app.route('/boats/<id>', methods={'GET', 'PATCH', 'DELETE'})
+# Get a boat and delete a boat
+@app.route('/boats/<id>', methods={'GET', 'DELETE'})
 def boat_get_delete(id):
     # Create key based on ID for boat
     key = client.key(constants.boat, int(id))
@@ -93,13 +117,14 @@ def boat_get_delete(id):
 
             dict_result = dict(result[0])
 
-            live_link = host + "boats/" + str(id)
+            live_link = request.base_url + "boats/" + str(id)
             # Set response
             response = {
                 'id': id,
                 'name': dict_result.get("name"),
                 'type': dict_result.get("type"),
                 'length': dict_result.get("length"),
+                'loads': dict_result.get("loads"),
                 'self': live_link
             }
 
@@ -107,139 +132,131 @@ def boat_get_delete(id):
 
         # No entity found, return not found
         else:
-            return jsonify(Error="No boat with this boat_id exists"), 404
+            return jsonify(Error="No boat with this ID exists"), 404
 
-    # Update boat information based on created key
-    elif request.method == 'PATCH':
-        content = request.get_json()
-
-        if len(content) == 3:
-            # Get boat based on key and update values
-            boat = client.get(key=key)
-
-            # If the boat is not found, return 404
-            if boat == None:
-                return jsonify(Error="No boat with this boat_id exists"), 404
-
-            # Loop through fields that were updated in JSON and update on boat
-            for field in content:
-                boat.update({field: content[field]})
-
-            client.put(boat)
-
-            live_link = host + "boats/" + str(id)
-            # Set response
-            response = {
-                'id': boat.id,
-                'name': boat.get("name"),
-                'type': boat.get("type"),
-                'length': boat.get("length"),
-                'self': live_link
-            }
-
-            return jsonify(response), 200
-
-        else:
-            return jsonify(Error="The request object is missing at least one of the required attributes"), 400
-
-    # Delete a boat based on created key
+    # Delete a boat based on created key from ID
     elif request.method == 'DELETE':
         # Get boat based on key and update values
         boat = client.get(key=key)
 
-        # If boat with ID is found, remove it and check if it exists at a slip as current_boat
-        # Set to current_boat to null if found
+        # If boat exists, check for loads and remove carrier from loads found.
         if boat != None:
+            # Check if boat has loads
+            if boat.get("loads") != None:
 
-            # Search for slip that has current_boat with the ID of deleted boat
-            slip_query = client.query(kind=constants.slip)
-            slip_query.add_filter('current_boat', '=', boat.id)
+                # Find load to be removed and delete it
+                for e in boat.get("loads"):
+                    # Create key based on ID for load
+                    load_key = client.key(constants.load, int(e.get("id")))
+                    load = client.get(key=load_key)
 
-            slip_result = list(slip_query.fetch())
+                    load.update(carrier=None)
 
-            # If a slip is found with query, remove the boat being deleted
-            if len(slip_result):
-                slip = slip_result[0]
-
-                # Update boat in slip to None
-                slip.update(current_boat=None)
-                client.put(slip)
+                    client.put(load)
 
             client.delete(key)
-
             return '', 204
-        # Boat with ID is not found, return error and 404
         else:
-            return jsonify(Error="No boat with this boat_id exists"), 404
+            return jsonify(Error="No boat with this ID exists"), 404
 
     # Incorrect request found
     else:
         return jsonify(Error='Method not accepted')
 
 
-@app.route('/slips', methods={'GET', 'POST'})
-def slips_get_add():
-    # Add a slip with provided values in JSON
+# Get all loads or add a load
+@app.route('/loads', methods={'GET', 'POST'})
+def load_get_add():
+    # Add a load with provided values in JSON
     if request.method == 'POST':
         content = request.get_json()
 
-        # Check for correct content, if does not exist, throw error and 400
-        if len(content) != 1:
-            return jsonify(Error="The request object is missing the required number"), 400
-        # Correct content received
-        else:
-            # Create a slip entity with given value and set current_boat to None/null
-            new_slip = datastore.entity.Entity(key=client.key(constants.slip))
-            new_slip.update({"number": content["number"]})
+        # Check that all three required JSON attributes are present
+        if all([field in content.keys() for field in ['weight', 'content', 'delivery_date']]):
+            # Create a load entity with given values
+            new_load = datastore.entity.Entity(key=client.key(constants.load))
+            new_load.update({"weight": content["weight"], "content": content["content"], "carrier": None,
+                             "delivery_date": content["delivery_date"]})
 
-            # Send created slip to datastore
-            client.put(new_slip)
+            # Send created load to datastore
+            client.put(new_load)
 
-            live_link = host + "slips/" + str(new_slip.id)
+            live_link = request.base_url + "loads/" + str(new_load.id)
+
+
             # Set response
             response = {
-                'id': new_slip.id,
-                'number': new_slip.get("number"),
-                'current_boat': None,
+                'id': new_load.id,
+                'weight': new_load.get("weight"),
+                'content': new_load.get("content"),
+                'carrier': new_load.get("carrier"),
+                'delivery_date': new_load.get("delivery_date"),
                 'self': live_link
             }
 
             return jsonify(response), 201
 
-    # Get all slips and output
+        else:
+            return jsonify(Error="The request object is missing at least one of the required attributes"), 400
+
+    # Get all loads and output
     elif request.method == 'GET':
-        query = client.query(kind=constants.slip)
-        results = list(query.fetch())
+        query = client.query(kind=constants.load)
+
+        # Implement pagination of 3 entities
+        q_limit = int(request.args.get('limit', '3'))
+        q_offset = int(request.args.get('offset', '0'))
+        list_iterator = query.fetch(limit=q_limit, offset=q_offset)
+        pages = list_iterator.pages
+        results = list(next(pages))
+
+        if list_iterator.next_page_token:
+            next_offset = q_offset + q_limit
+            next_url = request.base_url + "?limit=" + str(q_limit) + "&offset=" + str(next_offset)
+        else:
+            next_url = None
 
         result_list = []
         for e in results:
             dict_result = dict(e)
 
-            live_link = host + "slips/" + str(e.key.id)
-            # Set entity to be displayed as response
-            entity = {
-                'id': e.key.id,
-                'number': dict_result.get("number"),
-                'current_boat': dict_result.get("current_boat"),
-                'self': live_link
-            }
+            live_link = request.base_url + "loads/" + str(e.key.id)
 
-            result_list.append(entity)
-        return jsonify(result_list), 200
+            e["id"] = e.key.id
+            e["weight"] = dict_result.get("weight")
+            e["carrier"] = dict_result.get("carrier")
+            e["content"] = dict_result.get("content")
+            e["delivery_date"] = dict_result.get("delivery_date")
+            e["self"] = live_link
+
+        output = {"loads": results}
+
+        # Add count of page of results and total count of entities
+        list_all = list(query.fetch())
+        output["count"] = len(results)
+        output["total"] = len(list_all)
+
+        # Add next_url to the list outputted
+        if next_url:
+            output["next"] = next_url
+
+        return jsonify(output), 200
 
     # Incorrect request found
     else:
         return jsonify(Error='Method not accepted')
 
 
-@app.route('/slips/<id>', methods={'GET', 'DELETE'})
-def slip_get_delete(id):
-    # Create key based on ID for slip
-    key = client.key(constants.slip, int(id))
+# Get a load or delete a load
+@app.route('/loads/<id>', methods={'GET', 'DELETE'})
+def load_get_delete(id):
+    # Create key based on ID for load
+    key = client.key(constants.load, int(id))
 
+    # Find load with created key
     if request.method == 'GET':
         # Create query
-        query = client.query(kind=constants.slip)
+        query = client.query(kind=constants.load)
         query.key_filter(key, '=')
 
         # Return found result
@@ -250,47 +267,70 @@ def slip_get_delete(id):
 
             dict_result = dict(result[0])
 
-            live_link = host + "slips/" + str(id)
+            live_link = request.base_url + "loads/" + str(id)
             # Set response
             response = {
                 'id': id,
-                'number': dict_result.get("number"),
-                'current_boat': dict_result.get("current_boat"),
+                'weight': dict_result.get("weight"),
+                'carrier': dict_result.get("carrier"),
+                'content': dict_result.get("content"),
+                'delivery_date': dict_result.get("delivery_date"),
                 'self': live_link
             }
 
             return jsonify(response), 200
-        # If no slip was found, return error and 404
+
+        # No entity found, return not found
         else:
-            return jsonify(Error="No slip with this slip_id exists"), 404
+            return jsonify(Error="No load with this ID exists"), 404
 
-    # Delete a slip based on ID provided
+    # Delete a load based on created key from ID
     elif request.method == 'DELETE':
-        # Get slip based on key and update values
-        slip = client.get(key=key)
+        # Get boat based on key and update values
+        load = client.get(key=key)
 
-        # If boat with ID is found, remove it
-        if slip != None:
+        # If load with ID is found, remove it and check if it exists on a boat.
+        if load != None:
+            # Check if load has a carrier, if not just delete the load, otherwise remove load from boat first
+            if load.get("carrier") != None:
+                # Create key based on ID for boat
+                boat_key = client.key(constants.boat, int(load.get("carrier").get("id")))
+                boat = client.get(key=boat_key)
+
+                # Find load to be removed and delete it
+                for e in boat.get("loads"):
+                    if e.get("id") == id:
+                        boat.get("loads").remove(e)
+
+                # Update boat with load removed
+                client.put(boat)
+
             client.delete(key)
             return '', 204
-        # Slip with ID is not found, return error and 404
+
+        # Load with ID is not found, return error and 404
         else:
-            return jsonify(Error="No slip with this slip_id exists"), 404
+            return jsonify(Error="No load with this ID exists"), 404
+
+    # Incorrect request found
+    else:
+        return jsonify(Error='Method not accepted')
 
 
-@app.route('/slips/<slip_id>/<boat_id>', methods={'PUT', 'DELETE'})
-def boat_arrive_slip(slip_id, boat_id):
-    # Create key based on ID for slip
-    slip_key = client.key(constants.slip, int(slip_id))
+# Managing loads: can be removed from a boat by DELETE or added to a boat with PUT
+@app.route('/boats/<boat_id>/loads/<load_id>', methods={'PUT'})
+def load_add_remove (boat_id, load_id):
+    # Create key based on ID for load
+    load_key = client.key(constants.load, int(load_id))
     # Create key based on ID for boat
     boat_key = client.key(constants.boat, int(boat_id))
 
-    # Create slip query
-    query = client.query(kind=constants.slip)
-    query.key_filter(slip_key, '=')
+    # Create load query
+    query = client.query(kind=constants.load)
+    query.key_filter(load_key, '=')
 
     # Return found result
-    slip_result = list(query.fetch())
+    load_result = list(query.fetch())
 
     # Create boat query
     query = client.query(kind=constants.boat)
@@ -299,53 +339,98 @@ def boat_arrive_slip(slip_id, boat_id):
     # Return found result
     boat_result = list(query.fetch())
 
-    # Sets boat to slip
+    # Adds a load to a boat
     if request.method == 'PUT':
-        # If either a boat or a slip are not found, return error and 404
-        if len(slip_result) == 0 or len(boat_result) == 0:
-            return jsonify(Error="The specified boat and/or slip don’t exist"), 404
+        # If either a boat or a load are not found, return error and 404
+        if len(load_result) == 0 or len(boat_result) == 0:
+            return jsonify(Error="The specified boat and/or load don’t exist"), 404
 
-        # Sets slip with the boat
+        # Sets load with the boat and adds load to the boat
         else:
-            slip = slip_result[0]
-
-            # If the slip is not empty, return 403 and error
-            if slip.get("current_boat") != None:
-                return jsonify(Error="The slip is not empty"), 403
-            # If the slip is empty, set boat to slip and return 204
-            else:
-                slip.update(current_boat=int(boat_id))
-
-                client.put(slip)
-
-                return '', 204
-
-    # Removes boat from slip
-    elif request.method == 'DELETE':
-
-        # If slip or boat are found, attempt to remove boat from slip
-        if len(slip_result) != 0 and len(boat_result) != 0:
-            slip = slip_result[0]
+            load = load_result[0]
             boat = boat_result[0]
 
-            # If the slip does not match the boat_id, then return 404 and error
-            if slip.get("current_boat") != int(boat_id):
-                return jsonify(Error="No boat with this boat_id is at the slip with this slip_id"), 404
-
-            # Matches ID, so update slips boat to None and return 204
+            # If the load is already assigned, return 403 and error
+            if load.get("carrier") != None:
+                return jsonify(Error="The load is already assigned to a boat"), 403
+            # If the load is not assigned already, set load to boat 204
             else:
-                slip.update(current_boat=None)
-                client.put(slip)
+                boat_link = request.base_url + "boats/" + str(boat_id)
+                # Set response for boat and add to load
+                boat_obj = {
+                    'id': boat_id,
+                    'name': boat.get("name"),
+                    'self': boat_link
+                }
+                load.update(carrier=boat_obj)
+
+                load_link = request.base_url + "loads/" + str(load_id)
+                # Set response for load and add to boat
+                load_obj = {
+                    'id': load_id,
+                    'self': load_link
+                }
+                boat['loads'].append(load_obj)
+
+                client.put(load)
+                client.put(boat)
+
                 return '', 204
 
-        # Return 404 and error as boat could not be removed from slip
+
+# GET all loads associated with a boat
+@app.route('/boats/<boat_id>/loads', methods={'GET'})
+def get_boat_loads (boat_id):
+    # Create key based on ID for boat
+    boat_key = client.key(constants.boat, int(boat_id))
+
+    # Create boat query
+    query = client.query(kind=constants.boat)
+    query.key_filter(boat_key, '=')
+
+    # Return found result
+    boat_result = list(query.fetch())
+
+    if request.method == "GET":
+        # If an entity is found, return it
+        if len(boat_result) == 1:
+
+            dict_result = dict(boat_result[0])
+
+            result_list = []
+            # Set load values to output and add live link
+            for e in dict_result.get("loads"):
+                load_result = dict(e)
+
+                # Create key based on ID for load
+                load_key = client.key(constants.load, int(load_result.get("id")))
+
+                # Create load query
+                query = client.query(kind=constants.load)
+                query.key_filter(load_key, '=')
+
+                # Get load
+                load = list(query.fetch())
+                load_dict = dict(load[0])
+
+                # Set results to be returned
+                live_link = request.base_url + "loads/" + str(load_result.get("id"))
+                e["id"] = load_result.get("id")
+                e["weight"] = load_dict.get("weight")
+                e["content"] = load_dict.get("content")
+                e["delivery_date"] = load_dict.get("delivery_date")
+                e["self"] = live_link
+
+                result_list.append(e)
+
+            return jsonify(result_list), 200
+
+        # Boat could not be found, return error
         else:
-            return jsonify(Error="No boat with this boat_id is at the slip with this slip_id"), 404
+            return jsonify(Error="Boat could not be found with that ID"), 404
 
-    # Method not found
     else:
-        return jsonify(Error='Method not accepted')
-
+        return jsonify(Error="No method found"), 404
 
 if __name__ == '__main__':
-    app.run()
+    app.run(host='127.0.0.1', port=8080, debug=True)

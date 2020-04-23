@@ -1,0 +1,1254 @@
+{
+	"info": {
+		"_postman_id": "8fed0081-b786-405a-b125-57141d5ee8e4",
+		"name": "hw4-trompj",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "POST_Boat",
+			"item": [
+				{
+					"name": "Create_Boat",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "8d60942e-27b9-4a45-aae4-444b45bdd717",
+								"exec": [
+									"// Check status code (201)",
+									"pm.test(\"Status code is 201\", function() {",
+									"    pm.response.to.have.status(201)",
+									"})",
+									"",
+									"// Parse JSON for data retreival",
+									"let jsonData = JSON.parse(responseBody);",
+									"let jsonRequest = JSON.parse(request.data);",
+									"",
+									"// Store ID of the boat from response for later testing",
+									"pm.environment.set(\"boat_id\", jsonData.id);",
+									"",
+									"// Set expected values from POST sent for later testing",
+									"pm.environment.set(\"name\", jsonRequest.name);",
+									"pm.environment.set(\"type\", jsonRequest.type);",
+									"pm.environment.set(\"length\", jsonRequest.length);",
+									"pm.environment.set(\"loads\", 0);",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"name\": \"Test_Name\",\n\t\"type\": \"Test_Type\",\n\t\"length\": 120\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url}}/boats",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"boats"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create_Boat_Error",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "8d60942e-27b9-4a45-aae4-444b45bdd717",
+								"exec": [
+									"// Check status code (400)",
+									"pm.test(\"Status code is 400\", function() {",
+									"    pm.response.to.have.status(400)",
+									"})",
+									"",
+									"// Parse JSON for data retreival",
+									"let jsonData = JSON.parse(responseBody);",
+									"",
+									"tests[\"Correct boat creation 400 error message: Missing field\"] = \"The request object is missing at least one of the required attributes\" == jsonData.Error;"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"type\": \"Test_Type\",\n\t\"length\": 120\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url}}/boats",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"boats"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"id": "dfbf2efc-0258-4372-aa0c-a23f6077b44a",
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"id": "264c3175-4d0a-4a62-abd9-3a37c8eb1adc",
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			],
+			"protocolProfileBehavior": {}
+		},
+		{
+			"name": "GET_Boats",
+			"item": [
+				{
+					"name": "Get_Boat",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "84f189cb-91ad-409c-9a67-60ba791c2ed8",
+								"exec": [
+									"// Check status code (200)",
+									"pm.test(\"Status code is 200\", function() {",
+									"    pm.response.to.have.status(200)",
+									"})",
+									"",
+									"// Parse JSON for data retreival",
+									"let jsonData = JSON.parse(responseBody);",
+									"",
+									"// Check for expected values from POST sent previously to ensure created correctly",
+									"tests[\"Name is correctly set from prior POST\"] = pm.environment.get(\"name\") == jsonData.name;",
+									"tests[\"Type is correctly set from prior POST\"] = pm.environment.get(\"type\") == jsonData.type;",
+									"tests[\"Length is correctly set from prior POST\"] = pm.environment.get(\"length\") == jsonData.length;",
+									"tests[\"Loads is correctly set from prior POST\"] = pm.environment.get(\"loads\") == jsonData.loads.length;",
+									"",
+									"// Check that self link exists",
+									"tests[\"Self link exists\"] = _.has(jsonData, 'self');",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url}}/boats/{{boat_id}}",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"boats",
+								"{{boat_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get_Boats",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "7d28a90a-d3a6-4cb1-8b61-f5f8b077d4c5",
+								"exec": [
+									"// Check status code (200)",
+									"pm.test(\"Status code is 200\", function() {",
+									"    pm.response.to.have.status(200)",
+									"})",
+									"",
+									"// Parse JSON for data retreival",
+									"let jsonData = JSON.parse(responseBody);",
+									"",
+									"// Check for expected number of entities returned from pagination and make sure next link",
+									"// exists",
+									"tests[\"Number of entities returned is 3 or less to meet pagination requirements\"] = 3 <= jsonData.boats.length;",
+									"tests[\"Number of entities returned matches count\"] = jsonData.count == jsonData.boats.length;",
+									"",
+									"if (jsonData.total > 3) {",
+									"    tests[\"Next link exists (only tested if there are more than 3 boats)\"] = _.has(jsonData, 'next');",
+									"}",
+									"",
+									"// Make sure that an entity has self link",
+									"tests[\"Self link exists\"] = _.has(jsonData.boats[0], 'self');",
+									"",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url}}/boats",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"boats"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get_Boat_Invalid",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "e4c230cf-4ffd-4fe6-8b09-1bbef4e1be1d",
+								"exec": [
+									"// Check status code (404)",
+									"pm.test(\"Status code is 404\", function() {",
+									"    pm.response.to.have.status(404)",
+									"})",
+									"",
+									"// Parse JSON for data retreival",
+									"let jsonData = JSON.parse(responseBody);",
+									"",
+									"tests[\"Correct invalid boat ID 404 error message\"] = \"No boat with this ID exists\" == jsonData.Error;"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url}}/boats/{{invalid_boat_id}}",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"boats",
+								"{{invalid_boat_id}}"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"protocolProfileBehavior": {}
+		},
+		{
+			"name": "POST_Load",
+			"item": [
+				{
+					"name": "Create_Load",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "8d60942e-27b9-4a45-aae4-444b45bdd717",
+								"exec": [
+									"// Check status code (201)",
+									"pm.test(\"Status code is 201\", function() {",
+									"    pm.response.to.have.status(201)",
+									"})",
+									"",
+									"// Parse JSON for data retreival",
+									"let jsonData = JSON.parse(responseBody);",
+									"let jsonRequest = JSON.parse(request.data)",
+									"",
+									"// Store ID of the load from response for later testing",
+									"pm.environment.set(\"load_id\", jsonData.id);",
+									"",
+									"// Set expected values from POST sent for later testing",
+									"pm.environment.set(\"weight\", jsonRequest.weight);",
+									"pm.environment.set(\"content\", jsonRequest.content);",
+									"pm.environment.set(\"delivery_date\", jsonRequest.delivery_date);",
+									"pm.environment.set(\"carrier\", jsonRequest.carrier)",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"weight\": 10,\n\t\"content\": \"LEGO Blocks\",\n\t\"delivery_date\": \"01/05/2021\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url}}/loads",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"loads"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create_Load_Error",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "8d60942e-27b9-4a45-aae4-444b45bdd717",
+								"exec": [
+									"// Check status code (400)",
+									"pm.test(\"Status code is 400\", function() {",
+									"    pm.response.to.have.status(400)",
+									"})",
+									"",
+									"// Parse JSON for data retreival",
+									"let jsonData = JSON.parse(responseBody);",
+									"",
+									"tests[\"Correct load creation 400 error message: Missing field\"] = \"The request object is missing at least one of the required attributes\" == jsonData.Error;"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"type\": \"Test_Type\",\n\t\"length\": 120\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url}}/loads",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"loads"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"id": "dfbf2efc-0258-4372-aa0c-a23f6077b44a",
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"id": "264c3175-4d0a-4a62-abd9-3a37c8eb1adc",
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			],
+			"protocolProfileBehavior": {}
+		},
+		{
+			"name": "GET_Loads",
+			"item": [
+				{
+					"name": "Get_Load",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "460ef9d1-3a25-4c7f-8838-1ba3c7b0b247",
+								"exec": [
+									"// Check status code (200)",
+									"pm.test(\"Status code is 200\", function() {",
+									"    pm.response.to.have.status(200)",
+									"})",
+									"",
+									"// Parse JSON for data retreival",
+									"let jsonData = JSON.parse(responseBody);",
+									"",
+									"// Check for expected values from POST sent previously to ensure created correctly",
+									"tests[\"Weight is correctly set from prior POST\"] = pm.environment.get(\"weight\") == jsonData.weight;",
+									"tests[\"Content is correctly set from prior POST\"] = pm.environment.get(\"content\") == jsonData.content;",
+									"tests[\"Delivery_date is correctly set from prior POST\"] = pm.environment.get(\"delivery_date\") == jsonData.delivery_date;",
+									"tests[\"Carrier is correctly set from prior POST\"] = pm.environment.get(\"carrier\") == jsonData.carrier;",
+									"",
+									"// Check that self link exists",
+									"tests[\"Self link exists\"] = _.has(jsonData, 'self');",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url}}/loads/{{load_id}}",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"loads",
+								"{{load_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get_Loads",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "73eef265-5392-4fb4-9638-7971f8e41c9f",
+								"exec": [
+									"// Check status code (200)",
+									"pm.test(\"Status code is 200\", function() {",
+									"    pm.response.to.have.status(200)",
+									"})",
+									"",
+									"// Parse JSON for data retreival",
+									"let jsonData = JSON.parse(responseBody);",
+									"",
+									"// Check for expected number of entities returned from pagination and make sure next link",
+									"// exists",
+									"tests[\"Number of entities returned is 3 or less to meet pagination requirements\"] = 3 <= jsonData.loads.length;",
+									"tests[\"Number of entities returned matches count\"] = jsonData.count == jsonData.loads.length;",
+									"",
+									"// Tests for existence of next link if there are enough entities present",
+									"if (jsonData.total > 3) {",
+									"    tests[\"Next link exists (only tested if there are more than 3 loads)\"] = _.has(jsonData, 'next');",
+									"}",
+									"",
+									"// Make sure that an entity has self link",
+									"tests[\"Self link exists\"] = _.has(jsonData.loads[0], 'self');",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url}}/loads",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"loads"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get_Load_Invalid",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "5b569d66-133d-4278-94ea-e4f27cfadd20",
+								"exec": [
+									"// Check status code (404)",
+									"pm.test(\"Status code is 404\", function() {",
+									"    pm.response.to.have.status(404)",
+									"})",
+									"",
+									"// Parse JSON for data retreival",
+									"let jsonData = JSON.parse(responseBody);",
+									"",
+									"tests[\"Correct invalid load ID 404 error message\"] = \"No load with this ID exists\" == jsonData.Error;"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url}}/loads/{{invalid_load_id}}",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"loads",
+								"{{invalid_load_id}}"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"id": "792fef60-b51b-41cf-af66-f3dd6e62126c",
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"id": "7ba773df-631d-4df5-bb1a-a3a597fef2c6",
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			],
+			"protocolProfileBehavior": {}
+		},
+		{
+			"name": "PUT_Load",
+			"item": [
+				{
+					"name": "Get_Boat_Ensure_Load_Not_Exists",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "84f189cb-91ad-409c-9a67-60ba791c2ed8",
+								"exec": [
+									"// Check status code (200)",
+									"pm.test(\"Status code is 200\", function() {",
+									"    pm.response.to.have.status(200)",
+									"})",
+									"",
+									"// Parse JSON for data retreival",
+									"let jsonData = JSON.parse(responseBody);",
+									"",
+									"// Loop through loads and check ID's for load to be added to the boat to ensure it does",
+									"// not exist prior to adding.",
+									"let loads = jsonData.loads;",
+									"let loadFound = 0;",
+									"for (let i = 0; i < loads.length; i++) {",
+									"    if (loads[i].id == pm.environment.get(\"load_id\")) {",
+									"        loadFound = 1;",
+									"        break;",
+									"    }",
+									"}",
+									"",
+									"// Check loads to see that the load ID to be added to the boat, does not exist",
+									"tests[\"Load is not found\"] = 0 === loadFound;"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url}}/boats/{{boat_id}}",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"boats",
+								"{{boat_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get_Load_Ensure_Load_Does_Not_Have_Carrier",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "84f189cb-91ad-409c-9a67-60ba791c2ed8",
+								"exec": [
+									"// Check status code (200)",
+									"pm.test(\"Status code is 200\", function() {",
+									"    pm.response.to.have.status(200)",
+									"})",
+									"",
+									"// Parse JSON for data retreival",
+									"let jsonData = JSON.parse(responseBody);",
+									"",
+									"// Check load to see that carrier is not set to load ID prior to having load added",
+									"tests[\"Load has carrier set to boat it was added to\"] = null === jsonData.carrier;"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url}}/loads/{{load_id}}",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"loads",
+								"{{load_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get_Boat_Loads_Set_Number",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "0962534f-7056-43c9-8809-93f8de7a7119",
+								"exec": [
+									"// Check status code (200)",
+									"pm.test(\"Status code is 200\", function() {",
+									"    pm.response.to.have.status(200)",
+									"})",
+									"",
+									"// Parse JSON for data retreival",
+									"let jsonData = JSON.parse(responseBody);",
+									"",
+									"pm.environment.set(\"numberOfLoads\", jsonData.length)"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url}}/boats/{{boat_id}}/loads",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"boats",
+								"{{boat_id}}",
+								"loads"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Put_Load",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "6148419c-17b3-42eb-a46b-949605747896",
+								"exec": [
+									"// Check status code (204)",
+									"pm.test(\"Status code is 204\", function() {",
+									"    pm.response.to.have.status(204)",
+									"})"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"url": {
+							"raw": "{{url}}/boats/{{boat_id}}/loads/{{load_id}}",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"boats",
+								"{{boat_id}}",
+								"loads",
+								"{{load_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get_Boat_Ensure_Load_Added",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "84f189cb-91ad-409c-9a67-60ba791c2ed8",
+								"exec": [
+									"// Check status code (200)",
+									"pm.test(\"Status code is 200\", function() {",
+									"    pm.response.to.have.status(200)",
+									"})",
+									"",
+									"// Parse JSON for data retreival",
+									"let jsonData = JSON.parse(responseBody);",
+									"",
+									"// Check loads to see that the load ID added to the boat exists",
+									"let loads = jsonData.loads;",
+									"let loadFound = 0;",
+									"for (let i = 0; i < loads.length; i++) {",
+									"    if (loads[i].id == pm.environment.get(\"load_id\")) {",
+									"        loadFound = 1;",
+									"        break;",
+									"    }",
+									"}",
+									"",
+									"// Check loads to see that the load ID was added to boat",
+									"tests[\"Load is found after adding\"] = 1 === loadFound;"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url}}/boats/{{boat_id}}",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"boats",
+								"{{boat_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get_Load_Ensure_Load_Has_Carrier",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "84f189cb-91ad-409c-9a67-60ba791c2ed8",
+								"exec": [
+									"// Check status code (200)",
+									"pm.test(\"Status code is 200\", function() {",
+									"    pm.response.to.have.status(200)",
+									"})",
+									"",
+									"// Parse JSON for data retreival",
+									"let jsonData = JSON.parse(responseBody);",
+									"",
+									"// Check load to see that carrier is set to boat load was added to",
+									"tests[\"Load has carrier set to boat it was added to\"] = pm.environment.get(\"boat_id\") == jsonData.carrier.id;"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url}}/loads/{{load_id}}",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"loads",
+								"{{load_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Put_Load_Load_Carried_Error",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "470d18a9-0ed8-4428-a288-3cc5094384f1",
+								"exec": [
+									"// Check status code (403)",
+									"pm.test(\"Status code is 403\", function() {",
+									"    pm.response.to.have.status(403)",
+									"})",
+									"",
+									"// Parse JSON for data retreival",
+									"let jsonData = JSON.parse(responseBody);",
+									"",
+									"tests[\"Correct error message: Load is already assigned to a boat\"] = \"The load is already assigned to a boat\" == jsonData.Error;"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"url": {
+							"raw": "{{url}}/boats/{{boat_id}}/loads/{{load_id}}",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"boats",
+								"{{boat_id}}",
+								"loads",
+								"{{load_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Put_Load_InvalidID_Error",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "c8e2c7c8-3b4d-4d11-982c-3133962e7279",
+								"exec": [
+									"// Check status code (404)",
+									"pm.test(\"Status code is 404\", function() {",
+									"    pm.response.to.have.status(404)",
+									"})",
+									"",
+									"// Parse JSON for data retreival",
+									"let jsonData = JSON.parse(responseBody);",
+									"",
+									"tests[\"Correct invalid load ID or invalid boat ID for PUT error message\"] = \"The specified boat and/or load don’t exist\" == jsonData.Error;"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"url": {
+							"raw": "{{url}}/boats/{{invalid_boat_id}}/loads/{{invalid_load_id}}",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"boats",
+								"{{invalid_boat_id}}",
+								"loads",
+								"{{invalid_load_id}}"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"protocolProfileBehavior": {}
+		},
+		{
+			"name": "GET_Boat_Loads",
+			"item": [
+				{
+					"name": "Get_Boat_Loads",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "0962534f-7056-43c9-8809-93f8de7a7119",
+								"exec": [
+									"// Check status code (200)",
+									"pm.test(\"Status code is 200\", function() {",
+									"    pm.response.to.have.status(200)",
+									"})",
+									"",
+									"// Parse JSON for data retreival",
+									"let jsonData = JSON.parse(responseBody);",
+									"",
+									"idExists=0;",
+									"// Loop through loads to see if ID exists of recently added load. Set idExists to 1 ",
+									"// if found.",
+									"for (let i = 0; i < jsonData.length; i++) {",
+									"    console.log(jsonData[i].id);",
+									"    if (jsonData[i].id == pm.environment.get(\"load_id\")) {",
+									"        idExists=1;",
+									"        break;",
+									"    }",
+									"}  ",
+									"",
+									"tests[\"Load added to boat is shown in loads returned\"] = 1 == idExists;",
+									"",
+									"tests[\"Number of loads on boat increased by 1\"] = (pm.environment.get(\"numberOfLoads\") + 1) == jsonData.length;"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url}}/boats/{{boat_id}}/loads",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"boats",
+								"{{boat_id}}",
+								"loads"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get_Boat_Loads_InvalidID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "ee6266eb-c742-49a4-aeaa-9fc75d083024",
+								"exec": [
+									"// Check status code (404)",
+									"pm.test(\"Status code is 404\", function() {",
+									"    pm.response.to.have.status(404)",
+									"})",
+									"",
+									"// Parse JSON for data retreival",
+									"let jsonData = JSON.parse(responseBody);",
+									"",
+									"tests[\"Correct invalid load ID 404 error message\"] = \"Boat could not be found with that ID\" == jsonData.Error;"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url}}/boats/{{invalid_boat_id}}/loads",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"boats",
+								"{{invalid_boat_id}}",
+								"loads"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"protocolProfileBehavior": {}
+		},
+		{
+			"name": "DELETE_Boat",
+			"item": [
+				{
+					"name": "Delete_Boat",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "53d46622-a0f3-4e90-8554-006e7313e74b",
+								"exec": [
+									"// Check status code (204)",
+									"pm.test(\"Status code is 204\", function() {",
+									"    pm.response.to.have.status(204)",
+									"})"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{url}}/boats/{{boat_id}}",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"boats",
+								"{{boat_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get_Boat_Ensure_Delete",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "84f189cb-91ad-409c-9a67-60ba791c2ed8",
+								"exec": [
+									"// Check status code (404)",
+									"pm.test(\"Status code is 404\", function() {",
+									"    pm.response.to.have.status(404)",
+									"})",
+									"",
+									"// Parse JSON for data retreival",
+									"let jsonData = JSON.parse(responseBody);",
+									"",
+									"tests[\"Correct invalid boat ID 404 error message: Boat successfully deleted\"] = \"No boat with this ID exists\" == jsonData.Error;"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url}}/boats/{{boat_id}}",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"boats",
+								"{{boat_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete_Boat_Invalid",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "19c69c54-57c9-4026-aaa8-294c05a3972f",
+								"exec": [
+									"// Check status code (404)",
+									"pm.test(\"Status code is 404\", function() {",
+									"    pm.response.to.have.status(404)",
+									"})",
+									"",
+									"// Parse JSON for data retreival",
+									"let jsonData = JSON.parse(responseBody);",
+									"",
+									"tests[\"Correct invalid boat ID for DELETE error message\"] = \"No boat with this ID exists\" == jsonData.Error;"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{url}}/boats/{{invalid_boat_id}}",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"boats",
+								"{{invalid_boat_id}}"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"protocolProfileBehavior": {}
+		},
+		{
+			"name": "DELETE_Load",
+			"item": [
+				{
+					"name": "Delete_Load",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "f7cbb45d-e300-4f31-bd21-6e3c0f24c4e1",
+								"exec": [
+									"// Check status code (204)",
+									"pm.test(\"Status code is 204\", function() {",
+									"    pm.response.to.have.status(204)",
+									"})"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{url}}/loads/{{load_id}}",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"loads",
+								"{{load_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get_Load_Ensure_Delete",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "84f189cb-91ad-409c-9a67-60ba791c2ed8",
+								"exec": [
+									"// Check status code (404)",
+									"pm.test(\"Status code is 404\", function() {",
+									"    pm.response.to.have.status(404)",
+									"})",
+									"",
+									"// Parse JSON for data retreival",
+									"let jsonData = JSON.parse(responseBody);",
+									"",
+									"tests[\"Correct invalid load ID 404 error message: Load successfully deleted\"] = \"No load with this ID exists\" == jsonData.Error;"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url}}/loads/{{load_id}}",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"loads",
+								"{{load_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete_Load_Invalid",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "8d3b6f62-d090-48e3-a8a7-bfc3cae8297d",
+								"exec": [
+									"// Check status code (404)",
+									"pm.test(\"Status code is 404\", function() {",
+									"    pm.response.to.have.status(404)",
+									"})",
+									"",
+									"// Parse JSON for data retreival",
+									"let jsonData = JSON.parse(responseBody);",
+									"",
+									"tests[\"Correct invalid load ID for DELETE error message\"] = \"No load with this ID exists\" == jsonData.Error;"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{url}}/loads/{{invalid_load_id}}",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"loads",
+								"{{invalid_load_id}}"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"id": "1ffdeb74-ad4e-4312-b135-e5657068cbfa",
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"id": "421acc87-51f3-4689-a6e2-736797494acf",
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			],
+			"protocolProfileBehavior": {}
+		}
+	],
+	"protocolProfileBehavior": {}
+}
